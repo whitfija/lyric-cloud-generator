@@ -1,0 +1,5 @@
+
+genius api link to get token: https://genius.com/api-clients
+
+lyricsgenius lib: https://lyricsgenius.readthedocs.io/
+https://lyricsgenius.readthedocs.io/en/master/reference/genius.html#genius
