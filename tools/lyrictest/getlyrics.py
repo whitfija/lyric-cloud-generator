@@ -1,6 +1,6 @@
 from lyricsgenius import Genius
 
-token = '[]'
+token = '3rMFou0uHqLaG3wSJFW--TcDJQ7Mn29zHzyHKIwq5p_nNVDusURiKm52trx2vzPfUTUOIGa5ME4qk6d4OEA84g'
 
 genius = Genius(token)
 #artist = genius.search_artist("Kendrick Lamar", max_songs=3, sort="title")
