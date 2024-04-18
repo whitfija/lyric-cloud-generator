@@ -18,6 +18,7 @@ def wordcloud():
 
     # process
     processed_data = process_lyrics(album, artist)
+    wordcloud_image = processed_data['wordcloud_image']
 
     # display page
-    return render_template('wordcloud.html', title='Wordcloud', processed_data=processed_data)
+    return render_template('wordcloud.html', title='Wordcloud', wordcloud_image=wordcloud_image)

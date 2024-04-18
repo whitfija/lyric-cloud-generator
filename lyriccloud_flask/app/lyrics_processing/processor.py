@@ -1,9 +1,15 @@
 from lyricsgenius import Genius
-from .storm_topology import SimpleTopology
+#from storm_topology import SimpleTopology
 import json
+import os
+from wordcloud import WordCloud
+import io
+import base64
 
 def get_genius_token():
-    with open('config.json', 'r') as f:
+    current_directory = os.getcwd()
+    print("Current directory:", current_directory)
+    with open('app\lyrics_processing\config.json', 'r') as f:
         config = json.load(f)
         return config.get('genius_token')
     
@@ -31,6 +37,7 @@ def process_lyrics(albumtitle, artist):
             if len(split_lyrics) > 1:
                 lyrics_content = split_lyrics[1].strip()
                 # remove extra stuff
+                lyrics_content = lyrics_content.split("Embed", 1)[0].strip()
                 lyrics_content = lyrics_content.split("1Embed", 1)[0].strip()
                 lyrics_content = lyrics_content.split("You might also likeEmbed", 1)[0].strip()
                 
@@ -43,13 +50,26 @@ def process_lyrics(albumtitle, artist):
     # none found
     if not lyrics_list:
         return {"error": "No lyrics found for the specified album and artist."}
-
-    # apache storm
-    # initialize topology
-    topology = SimpleTopology()
-
-    # run the topology
-    processed_data = topology.run(lyrics_list)
     
-    processed_data = {  }
-    return processed_data
+    word_list = combine_words_from_strings(lyrics_list)
+
+    # spark fixes
+
+    # build word cloud
+    text = ' '.join(word_list)
+    wordcloud = WordCloud(width = 800, height = 800,
+                background_color="rgba(255, 255, 255, 0)", mode="RGBA",
+                stopwords = ['battle'],
+                min_font_size = 10).generate(text)
+    img_buffer = io.BytesIO()
+    wordcloud.to_image().save(img_buffer, format='PNG')
+    img_str = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+
+    return {"wordcloud_image": img_str}
+
+def combine_words_from_strings(string_list):
+        all_words = []
+        for string in string_list:
+            words = string.split()
+            all_words.extend(words)
+        return all_words

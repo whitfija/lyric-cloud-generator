@@ -51,3 +51,7 @@ input[type="submit"] {
 input[type="submit"]:hover {
     background-color: #ffb3ba; /* Darker blue color on hover */
 }
+
+img {
+    width: 80%;
+}
