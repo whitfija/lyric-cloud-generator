@@ -9,6 +9,20 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, split, col, concat_ws
 from pyspark.sql.types import ArrayType, StringType
 
+top_100_common_words = [
+    "the", "be", "to", "of", "and", "a", "in", "that", "have", "I",
+    "it", "for", "not", "on", "with", "he", "as", "you", "do", "at",
+    "this", "but", "his", "by", "from", "they", "we", "say", "her", "she",
+    "or", "an", "will", "my", "one", "all", "would", "there", "their", "what",
+    "so", "up", "out", "if", "about", "who", "get", "which", "go", "me",
+    "when", "make", "can", "like", "time", "no", "just", "him", "know", "take",
+    "people", "into", "year", "your", "good", "some", "could", "them", "see", "other",
+    "than", "then", "now", "look", "only", "come", "its", "over", "think", "also",
+    "back", "after", "use", "two", "how", "our", "work", "first", "well", "way",
+    "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"
+]
+
+
 def get_genius_token():
     current_directory = os.getcwd()
     print("Current directory:", current_directory)
@@ -57,45 +71,31 @@ def process_lyrics(albumtitle, artist):
     word_list = combine_words_from_strings(lyrics_list)
 
     # spark processing
-
-    # Initialize Spark session
     spark = SparkSession.builder \
         .appName("LyricsWordCloud") \
         .getOrCreate()
 
-    # Create a DataFrame with a single column containing the word_list
+    # dataframe create
     df = spark.createDataFrame([(word_list,)], ["words"])
 
-     # Convert the words column to a string by concatenating all elements with a space separator
+    # processing
     df = df.withColumn("words_str", concat_ws(" ", "words"))
-
-    # Explode the words_str column to split words into rows
     df_exploded = df.select(explode(split(col("words_str"), " ")).alias("word"))
-
-    # Group by word and count occurrences
-    word_counts = df_exploded.groupBy("word").count()
-
-    # Order by count in descending order to get the most common words
+    df_filtered = df_exploded.filter(~df_exploded.word.isin(top_100_common_words))
+    word_counts = df_filtered.groupBy("word").count()
     top_100_words = word_counts.orderBy(col("count").desc()).limit(100)
-
-    # Collect the top 100 words as a list
     top_100_words_list = top_100_words.select("word").rdd.flatMap(lambda x: x).collect()
 
-    # Split the processing by songs and combine the results into the word_list
-    # You can implement this part based on your specific needs and the structure of your data
-
-    #print(top_100_words_list)
-
-    # Stop Spark session
+    # stop spark session
     spark.stop()
 
+    # turn it into a string
     final_words = ' '.join(top_100_words_list)
     print(final_words)
 
     # build word cloud
     wordcloud = WordCloud(width = 800, height = 800,
                 background_color="rgba(255, 255, 255, 0)", mode="RGBA",
-                stopwords = ['supercalifragilisticexp'],
                 min_font_size = 10).generate(final_words)
     img_buffer = io.BytesIO()
     wordcloud.to_image().save(img_buffer, format='PNG')
