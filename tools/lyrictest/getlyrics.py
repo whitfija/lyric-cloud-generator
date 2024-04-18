@@ -1,7 +1,13 @@
+"""
+
+this was a file used to test the functionalities
+
+"""
+
 from lyricsgenius import Genius
 import json
 
-token = '3rMFou0uHqLaG3wSJFW--TcDJQ7Mn29zHzyHKIwq5p_nNVDusURiKm52trx2vzPfUTUOIGa5ME4qk6d4OEA84g'
+token = '[]'
 
 genius = Genius(token)
 
