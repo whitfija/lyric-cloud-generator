@@ -5,6 +5,9 @@ import os
 from wordcloud import WordCloud
 import io
 import base64
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import explode, split, col, concat_ws
+from pyspark.sql.types import ArrayType, StringType
 
 def get_genius_token():
     current_directory = os.getcwd()
@@ -53,14 +56,47 @@ def process_lyrics(albumtitle, artist):
     
     word_list = combine_words_from_strings(lyrics_list)
 
-    # spark fixes
+    # spark processing
+
+    # Initialize Spark session
+    spark = SparkSession.builder \
+        .appName("LyricsWordCloud") \
+        .getOrCreate()
+
+    # Create a DataFrame with a single column containing the word_list
+    df = spark.createDataFrame([(word_list,)], ["words"])
+
+     # Convert the words column to a string by concatenating all elements with a space separator
+    df = df.withColumn("words_str", concat_ws(" ", "words"))
+
+    # Explode the words_str column to split words into rows
+    df_exploded = df.select(explode(split(col("words_str"), " ")).alias("word"))
+
+    # Group by word and count occurrences
+    word_counts = df_exploded.groupBy("word").count()
+
+    # Order by count in descending order to get the most common words
+    top_100_words = word_counts.orderBy(col("count").desc()).limit(100)
+
+    # Collect the top 100 words as a list
+    top_100_words_list = top_100_words.select("word").rdd.flatMap(lambda x: x).collect()
+
+    # Split the processing by songs and combine the results into the word_list
+    # You can implement this part based on your specific needs and the structure of your data
+
+    #print(top_100_words_list)
+
+    # Stop Spark session
+    spark.stop()
+
+    final_words = ' '.join(top_100_words_list)
+    print(final_words)
 
     # build word cloud
-    text = ' '.join(word_list)
     wordcloud = WordCloud(width = 800, height = 800,
                 background_color="rgba(255, 255, 255, 0)", mode="RGBA",
-                stopwords = ['battle'],
-                min_font_size = 10).generate(text)
+                stopwords = ['supercalifragilisticexp'],
+                min_font_size = 10).generate(final_words)
     img_buffer = io.BytesIO()
     wordcloud.to_image().save(img_buffer, format='PNG')
     img_str = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
